@@ -7,12 +7,21 @@ function getBaseSWCOptions({
   hasReactRefresh,
   globalWindow,
   styledComponents,
+  paths,
+  baseUrl,
+  importSource,
 }) {
   const isTSFile = filename.endsWith('.ts')
   const isTypeScript = isTSFile || filename.endsWith('.tsx')
 
   return {
     jsc: {
+      ...(baseUrl && paths
+        ? {
+            baseUrl,
+            paths,
+          }
+        : {}),
       parser: {
         syntax: isTypeScript ? 'typescript' : 'ecmascript',
         dynamicImport: true,
@@ -22,6 +31,7 @@ function getBaseSWCOptions({
 
       transform: {
         react: {
+          importSource: importSource || 'react',
           runtime: 'automatic',
           pragma: 'React.createElement',
           pragmaFrag: 'React.Fragment',
@@ -36,6 +46,10 @@ function getBaseSWCOptions({
             typeofs: {
               window: globalWindow ? 'object' : 'undefined',
             },
+            envs: {
+              NODE_ENV: development ? '"development"' : '"production"',
+            },
+            // TODO: handle process.browser to match babel replacing as well
           },
         },
         regenerator: {
@@ -43,19 +57,30 @@ function getBaseSWCOptions({
         },
       },
     },
-    styledComponents: {
-      displayName: styledComponents,
-      ssr: styledComponents,
-    },
+    styledComponents: styledComponents
+      ? {
+          displayName: Boolean(development),
+        }
+      : null,
   }
 }
 
-export function getJestSWCOptions({ filename, esm }) {
+export function getJestSWCOptions({
+  isServer,
+  filename,
+  esm,
+  styledComponents,
+  paths,
+  baseUrl,
+}) {
   let baseOptions = getBaseSWCOptions({
     filename,
     development: false,
     hasReactRefresh: false,
-    globalWindow: false,
+    globalWindow: !isServer,
+    styledComponents,
+    paths,
+    baseUrl,
   })
 
   const isNextDist = nextDistPath.test(filename)
@@ -84,6 +109,7 @@ export function getLoaderSWCOptions({
   isPageFile,
   hasReactRefresh,
   styledComponents,
+  importSource,
 }) {
   let baseOptions = getBaseSWCOptions({
     filename,
@@ -91,6 +117,7 @@ export function getLoaderSWCOptions({
     globalWindow: !isServer,
     hasReactRefresh,
     styledComponents,
+    importSource,
   })
 
   const isNextDist = nextDistPath.test(filename)
